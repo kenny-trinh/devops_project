@@ -144,6 +144,18 @@ class Dog(Game):
         """ Print the current game state """
         pass
 
+    def is_path_blocked(self, start: int, end: int) -> bool:
+        """Helper function to check blocking marbles on path"""
+        # Assuming forward moves on the main loop. Check intermediate positions for blocking marbles.
+        step = 1 if end > start else -1
+        for pos in range(start + step, end + step, step):
+            for player in self.state.list_player:
+                for m in player.list_marble:
+                    # If a marble is on this position and is_save is True, it blocks movement.
+                    if m.pos == pos and m.is_save:
+                        return True
+        return False
+
     def get_list_action(self) -> List[Action]:
         actions = []
         active_player = self.state.list_player[self.state.idx_player_active]
@@ -152,20 +164,6 @@ class Dog(Game):
 
         # Check if it's the beginning of the game (all marbles in kennel)
         is_beginning_phase = all(marble.pos >= 64 for marble in active_player.list_marble)
-
-        # Helper function to check blocking:
-        def is_path_blocked(start: int, end: int) -> bool:
-            # Assuming forward moves on the main loop. Check intermediate positions for blocking marbles.
-            step = 1 if end > start else -1
-            for pos in range(start + step, end + step, step):
-                for player in self.state.list_player:
-                    for m in player.list_marble:
-                        # If a marble is on this position and is_save is True, it blocks movement.
-                        # Actually, the test hint suggests that marbles on start with is_save=True block passing.
-                        # We'll assume any marble on the path blocks since the rules aren't fully defined.
-                        if m.pos == pos and m.is_save:
-                            return True
-            return False
 
         for card in cards:
 
@@ -264,9 +262,6 @@ class Dog(Game):
                 continue
 
             # Handle normal forward moves for numbered cards (excluding 4 and 7):
-            # 2,3,5,6,8,9,10 move forward that many steps
-            # Q moves 12 forward, A can move 1 or 11, K can move 13 forward
-            # For simplicity, just handle numeric forward moves as stated.
             forward_move_cards = {
                 '2': 2, '3': 3, '5': 5, '6': 6, '8': 8, '9': 9, '10': 10
             }
@@ -278,16 +273,12 @@ class Dog(Game):
                         target_pos = marble.pos + steps
                         if target_pos <= 63:  # still on the main board
                             # Check path for blocking
-                            if not is_path_blocked(marble.pos, target_pos):
+                            if not self.is_path_blocked(marble.pos, target_pos):
                                 actions.append(Action(
                                     card=card,
                                     pos_from=marble.pos,
                                     pos_to=target_pos
                                 ))
-
-            # Note: For the test in question (Test 036), the card is '5' and we expect a move from pos=0 to pos=5.
-            # The above logic should now produce that action.
-
         return actions
 
     def apply_action(self, action: Action) -> None:
@@ -320,8 +311,6 @@ class Dog(Game):
             # Get the active player
             active_player = self.state.list_player[self.state.idx_player_active]
 
-
-
             # Handle Joker swap
             if action.card.rank == 'JKR' and action.card_swap:
                 # Remove the Joker card from the player's hand
@@ -346,10 +335,10 @@ class Dog(Game):
                         steps_used = 5
                     else:  # Moving from board to finish
                         steps_used = 2
-                        #finish_entry = 76 + (self.state.idx_player_active * 8)
-                        #steps_to_finish = finish_entry - action.pos_from
-                        #steps_in_finish = action.pos_to - finish_entry
-                        #steps_used = steps_to_finish + steps_in_finish
+                        # finish_entry = 76 + (self.state.idx_player_active * 8)
+                        # steps_to_finish = finish_entry - action.pos_from
+                        # steps_in_finish = action.pos_to - finish_entry
+                        # steps_used = steps_to_finish + steps_in_finish
                 
                 else:
                     # Calculate the number of steps used in the current action
@@ -402,11 +391,8 @@ class Dog(Game):
                         self.state.idx_player_active = (self.state.idx_player_active + 1) % self.state.cnt_player
                 return  # Prevent further turn advancement for incomplete SEVEN moves
 
-
-
             if card_to_use.rank == 'J':  # Jake (Jack) card: Handle swapping
                 # Find the active player's marble
-
                 moving_marble = next(
                     (marble for marble in active_player.list_marble if marble.pos == action.pos_from), None
                 )
