@@ -283,6 +283,7 @@ class Dog(Game):
 
     def apply_action(self, action: Action) -> None:
 
+
         if not action and self.state.card_active and self.state.card_active.rank == '7':
             active_player = self.state.list_player[self.state.idx_player_active]
             # Find marble at current position (15) and move it back to start position (12)
@@ -306,6 +307,8 @@ class Dog(Game):
             self.steps_remaining = None
             self.state.idx_player_active = (self.state.idx_player_active + 1) % self.state.cnt_player
             return
+
+
 
         if action:
             # Get the active player
@@ -339,7 +342,7 @@ class Dog(Game):
                         # steps_to_finish = finish_entry - action.pos_from
                         # steps_in_finish = action.pos_to - finish_entry
                         # steps_used = steps_to_finish + steps_in_finish
-                
+
                 else:
                     # Calculate the number of steps used in the current action
                     steps_used = abs(action.pos_to - action.pos_from)
@@ -441,6 +444,20 @@ class Dog(Game):
             # Clear the active card if it was used
             if self.state.card_active:
                 self.state.card_active = None
+
+
+        # Add folding logic here
+        if action is None and not self.get_list_action() and self.state.card_active is None:
+            active_player = self.state.list_player[self.state.idx_player_active]
+
+            # Only fold if the player has cards in their hand
+            if active_player.list_card:
+                # Discard all cards in hand
+                self.state.list_card_discard.extend(active_player.list_card)
+                active_player.list_card.clear()
+            else:
+                print(f"Player {self.state.idx_player_active + 1} has no cards to fold. Skipping.")
+
 
         # Proceed to the next player's turn if no steps are remaining
         if self.steps_remaining is None:
