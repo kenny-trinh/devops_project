@@ -162,6 +162,7 @@ class Dog(Game):
 
 
 
+        
         # Check if the active player has finished their marbles
         player_finished = all(marble.pos >= 68 for marble in active_player.list_marble)
 
@@ -319,7 +320,29 @@ class Dog(Game):
                                     pos_from=marble.pos,
                                     pos_to=target_pos
                                 ))
-        return actions
+        
+        
+        
+        
+        # Filter out duplicate actions
+        unique_actions = []
+        seen_actions = set()
+        
+        for action in actions:
+            # Create a tuple of the action's unique properties
+            action_key = (
+                action.card.suit,
+                action.card.rank,
+                action.pos_from,
+                action.pos_to,
+                str(action.card_swap) if action.card_swap else None
+            )
+            
+            if action_key not in seen_actions:
+                seen_actions.add(action_key)
+                unique_actions.append(action)
+        
+        return unique_actions
 
     def apply_action(self, action: Action) -> None:
 
