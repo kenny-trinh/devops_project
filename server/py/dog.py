@@ -497,6 +497,23 @@ class Dog(Game):
                     moving_marble.pos = action.pos_to
                     moving_marble.is_save = True
 
+                    #Check if team 1 (players 1 & 3) has all marbles in their finish areas
+                    team_won = True
+                    for idx_player in [0, 2]:  # Check players 1 and 3
+                        player = self.state.list_player[idx_player]
+                        player_finish_start = 68 + (idx_player * 8)
+                        
+                        # Check if all marbles are in finish area
+                        for marble in player.list_marble:
+                            if not (player_finish_start <= marble.pos <= player_finish_start + 3):
+                                team_won = False
+                                break
+                        if not team_won:
+                            break
+                    
+                    if team_won:
+                        self.state.phase = GamePhase.FINISHED
+
             # Remove the card used from the active player's hand if applicable
             if not self.state.card_active and action.card in active_player.list_card:
                 active_player.list_card.remove(action.card)
