@@ -162,13 +162,7 @@ class Dog(Game):
         actions = []
         active_player = self.state.list_player[self.state.idx_player_active]
 
-        # 1. Add Exchange Actions only if cnt_round == 0 and exchanges haven't been done yet
-        if self.state.cnt_round == 0 and not self.state.bool_card_exchanged:
-            for card in active_player.list_card:
-                actions.append(Action(card=card, pos_from=None, pos_to=None))
-            # Do not return here; allow other actions to be added
-
-        # 2. Check if the active player has finished their marbles
+        # Check if the active player has finished their marbles
         player_finished = all(marble.pos >= 68 for marble in active_player.list_marble)
 
         if player_finished:
@@ -202,13 +196,20 @@ class Dog(Game):
                             ))
             return actions
 
-        # 3. Generate actions based on card_active or player's cards
+        # Generate actions based on card_active or player's cards
         cards = [self.state.card_active] if self.state.card_active else active_player.list_card
 
         # Check if it's the beginning of the game (all marbles in kennel)
         is_beginning_phase = all(marble.pos >= 64 for marble in active_player.list_marble)
 
         for card in cards:
+
+            # Handle card exchange at the beginning of round 1
+            if self.state.cnt_round == 0 and not self.state.bool_card_exchanged:
+                for card in active_player.list_card:
+                    actions.append(Action(card=card, pos_from=None, pos_to=None))
+                return actions
+
             # Handle Joker card
             if card.rank == 'JKR':
                 # Action 1: Moving from kennel to start position
