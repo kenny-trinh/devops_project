@@ -160,18 +160,13 @@ class Dog(Game):
         actions = []
         active_player = self.state.list_player[self.state.idx_player_active]
 
-
-
-        
         # Check if the active player has finished their marbles
         player_finished = all(marble.pos >= 68 for marble in active_player.list_marble)
-
 
         if player_finished:
             # Identify partner (team logic assumes 4 players with diagonal partners)
             partner_idx = (self.state.idx_player_active + 2) % self.state.cnt_player
             partner_player = self.state.list_player[partner_idx]
-
 
             # If the player has finished, generate actions for partner's marbles
             for card in active_player.list_card:
@@ -199,14 +194,18 @@ class Dog(Game):
                             ))
             return actions
 
-
         cards = active_player.list_card if not self.state.card_active else [self.state.card_active]
-
 
         # Check if it's the beginning of the game (all marbles in kennel)
         is_beginning_phase = all(marble.pos >= 64 for marble in active_player.list_marble)
 
         for card in cards:
+
+            # Handle card exchange at the beginning of round 1
+            if self.state.cnt_round == 0 and not self.state.bool_card_exchanged:
+                for card in active_player.list_card:
+                    actions.append(Action(card=card, pos_from=None, pos_to=None))
+                return actions
 
             # Handle Joker card
             if card.rank == 'JKR':
@@ -320,14 +319,11 @@ class Dog(Game):
                                     pos_from=marble.pos,
                                     pos_to=target_pos
                                 ))
-        
-        
-        
-        
+
         # Filter out duplicate actions
         unique_actions = []
         seen_actions = set()
-        
+
         for action in actions:
             # Create a tuple of the action's unique properties
             action_key = (
@@ -337,16 +333,13 @@ class Dog(Game):
                 action.pos_to,
                 str(action.card_swap) if action.card_swap else None
             )
-            
+
             if action_key not in seen_actions:
                 seen_actions.add(action_key)
                 unique_actions.append(action)
-        
         return unique_actions
 
     def apply_action(self, action: Action) -> None:
-
-
         if not action and self.state.card_active and self.state.card_active.rank == '7':
             # Check if the action is for the partner
             active_player = self.state.list_player[self.state.idx_player_active]
@@ -520,12 +513,12 @@ class Dog(Game):
                     moving_marble.pos = action.pos_to
                     moving_marble.is_save = True
 
-                    #Check if team 1 (players 1 & 3) has all marbles in their finish areas
+                    # Check if team 1 (players 1 & 3) has all marbles in their finish areas
                     team_won = True
                     for idx_player in [0, 2]:  # Check players 1 and 3
                         player = self.state.list_player[idx_player]
                         player_finish_start = 68 + (idx_player * 8)
-                        
+
                         # Check if all marbles are in finish area
                         for marble in player.list_marble:
                             if not (player_finish_start <= marble.pos <= player_finish_start + 3):
@@ -533,7 +526,7 @@ class Dog(Game):
                                 break
                         if not team_won:
                             break
-                    
+
                     if team_won:
                         self.state.phase = GamePhase.FINISHED
 
@@ -545,7 +538,6 @@ class Dog(Game):
             if self.state.card_active:
                 self.state.card_active = None
 
-
         # Add folding logic here
         if action is None and not self.get_list_action() and self.state.card_active is None:
             active_player = self.state.list_player[self.state.idx_player_active]
@@ -555,8 +547,6 @@ class Dog(Game):
                 # Discard all cards in hand
                 self.state.list_card_discard.extend(active_player.list_card)
                 active_player.list_card.clear()
-
-
 
         # Proceed to the next player's turn if no steps are remaining
         if self.steps_remaining is None:
