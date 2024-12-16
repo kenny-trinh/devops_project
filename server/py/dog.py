@@ -166,6 +166,7 @@ class Dog(Game):
         player_finished = all(marble.pos >= 68 for marble in active_player.list_marble)
 
         if player_finished:
+
             partner_idx = (self.state.idx_player_active + 2) % self.state.cnt_player
             partner_player = self.state.list_player[partner_idx]
 
@@ -182,6 +183,7 @@ class Dog(Game):
                                     pos_to=target_pos,
                                     card_swap=None
                                 ))
+
                 elif card.rank in ['A', 'K']:
                     for marble in partner_player.list_marble:
                         if marble.pos == 64:  # Partner's marble in the kennel
@@ -348,10 +350,12 @@ class Dog(Game):
 
     def apply_action(self, action: Action) -> None:
         if not action and self.state.card_active and self.state.card_active.rank == '7':
+            # Existing SEVEN card logic
             active_player = self.state.list_player[self.state.idx_player_active]
             player_finished = all(marble.pos >= 68 for marble in active_player.list_marble)
             
             moving_marble = next((marble for marble in active_player.list_marble if marble.pos == 15), None)
+
             if moving_marble:
                 moving_marble.pos = 12
             
@@ -370,6 +374,7 @@ class Dog(Game):
         if action:
             active_player = self.state.list_player[self.state.idx_player_active]
 
+
             if action.pos_from is None and action.pos_to is None and action.card_swap is None:
                 partner_idx = (self.state.idx_player_active + 2) % self.state.cnt_player
                 partner_player = self.state.list_player[partner_idx]
@@ -379,16 +384,19 @@ class Dog(Game):
                     partner_player.list_card.append(action.card)
                     self.state.bool_card_exchanged = True
 
+                # Advance to the next player for exchange if in the same round
                 next_player_idx = (self.state.idx_player_active + 1) % self.state.cnt_player
                 if self.state.cnt_round == 0:
                     self.state.idx_player_active = next_player_idx
                 else:
+
                     self.state.idx_player_active = next_player_idx
                 return
 
             if action.pos_from is None and action.pos_to is None and action.card_swap is not None:
                 if action.card in active_player.list_card:
                     active_player.list_card.remove(action.card)
+
                 self.state.card_active = action.card_swap
                 return
 
@@ -413,6 +421,7 @@ class Dog(Game):
 
             if card_to_use.rank == '7':
                 if self.steps_remaining is None:
+
                     self.steps_remaining = 7
                     self.state.card_active = card_to_use
 
@@ -425,8 +434,10 @@ class Dog(Game):
                 elif action.pos_from == 77:  # From first finish position
                     if action.pos_to == 79:  # Second finish move (2 steps)
                         steps_used = 2
+
                     else:
                         steps_used = action.pos_to - action.pos_from
+
                 else:
                     steps_used = abs(action.pos_to - action.pos_from)
 
@@ -437,6 +448,7 @@ class Dog(Game):
                     (marble for marble in active_player.list_marble if marble.pos == action.pos_from), None
                 )
                 if moving_marble:
+
                     # Special handling for finish area moves
                     if action.pos_from == 13 and action.pos_to == 77:
                         moving_marble.pos = 77
@@ -452,6 +464,7 @@ class Dog(Game):
 
                     # Regular movement and capturing logic
                     for pos in range(min(action.pos_from, action.pos_to) + 1, max(action.pos_from, action.pos_to) + 1):
+
                         for player in self.state.list_player:
                             for marble in player.list_marble:
                                 if marble.pos == pos and marble != moving_marble:
@@ -541,7 +554,7 @@ class Dog(Game):
 
         if self.state.idx_player_active == self.state.idx_player_started:
             self.state.cnt_round += 1
-            self.state.bool_card_exchanged = False
+            self.state.bool_card_exchanged = False  # Reset for the new round
             self.state.idx_player_started = (self.state.idx_player_started + 1) % self.state.cnt_player
 
             if 1 <= self.state.cnt_round <= 5:
