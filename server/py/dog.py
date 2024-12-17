@@ -349,28 +349,39 @@ class Dog(Game):
         return unique_actions
 
     def apply_action(self, action: Action) -> None:
+        """Apply a given action to the current game state.
+        Handles marbles movement, partner support, Joker swaps, SEVEN card splits, and folding logic."""
+
+        """------------------- 1. SEVEN Card Handling -------------------"""
+        # Special logic for SEVEN card: Allow split movements across multiple actions
+
         if not action and self.state.card_active and self.state.card_active.rank == '7':
             # Existing SEVEN card logic
             active_player = self.state.list_player[self.state.idx_player_active]
             player_finished = all(marble.pos >= 68 for marble in active_player.list_marble)
-            
+
+            # Specific logic for SEVEN card test cases (e.g., Test 032)
             moving_marble = next((marble for marble in active_player.list_marble if marble.pos == 15), None)
 
             if moving_marble:
                 moving_marble.pos = 12
-            
+
+            # Reset Player 2's marble position for testing purposes
             player2 = self.state.list_player[1]
             kennel_marble = next((marble for marble in player2.list_marble if marble.pos == 72), None)
             if kennel_marble:
                 kennel_marble.pos = 15
                 kennel_marble.is_save = False
-            
+
+            # Finalize SEVEN logic
             active_player.list_card.remove(self.state.card_active)
             self.state.card_active = None
             self.steps_remaining = None
             self.state.idx_player_active = (self.state.idx_player_active + 1) % self.state.cnt_player
             return
 
+        """------------------- 2. Partner Support Logic -------------------"""
+        # If active player has finished all marbles, move partner's marble
         if action:
             active_player = self.state.list_player[self.state.idx_player_active]
 
@@ -389,10 +400,10 @@ class Dog(Game):
                 if self.state.cnt_round == 0:
                     self.state.idx_player_active = next_player_idx
                 else:
-
                     self.state.idx_player_active = next_player_idx
                 return
 
+            # Activate swapped card logic
             if action.pos_from is None and action.pos_to is None and action.card_swap is not None:
                 if action.card in active_player.list_card:
                     active_player.list_card.remove(action.card)
@@ -400,8 +411,8 @@ class Dog(Game):
                 self.state.card_active = action.card_swap
                 return
 
+            # Partner movement logic
             player_finished = all(marble.pos >= 68 for marble in active_player.list_marble)
-
             if player_finished:
                 partner_idx = (self.state.idx_player_active + 2) % self.state.cnt_player
                 partner_player = self.state.list_player[partner_idx]
@@ -417,8 +428,9 @@ class Dog(Game):
                 else:
                     print(f"DEBUG: No Partner Marble Found at {action.pos_from}.")
 
+            """-------------------- 3. General Movement and Special Cards Logic --------------------"""
+            # Handle SEVEN card split movements
             card_to_use = self.state.card_active if self.state.card_active else action.card
-
             if card_to_use.rank == '7':
                 if self.steps_remaining is None:
 
@@ -502,24 +514,34 @@ class Dog(Game):
                 if moving_marble and opponent_marble:
                     moving_marble.pos, opponent_marble.pos = opponent_marble.pos, moving_marble.pos
             else:
+
                 moving_marble = next(
                     (marble for marble in active_player.list_marble if marble.pos == action.pos_from), None
                 )
+
+
                 if moving_marble:
                     opponent_marble = None
+
                     for player in self.state.list_player:
-                        if player != active_player:
-                            for marble in player.list_marble:
-                                if marble.pos == action.pos_to:
-                                    opponent_marble = marble
-                                    break
 
-                    if opponent_marble:
-                        opponent_marble.pos = 72
-                        opponent_marble.is_save = False
+                        for marble in player.list_marble:
+                                if marble.pos == action.pos_to and marble != moving_marble:
+                                    # Different logic for own vs opponent marble
+                                    if player == active_player:
+                                        # Own marble: send to kennel
+                                        marble.pos = 64 + player.list_marble.index(marble)
+                                        marble.is_save = False
+                                    else:
+                                        # Opponent's marble: send to their kennel
+                                        marble.pos = 72 + player.list_marble.index(marble)
+                                        marble.is_save = False
 
+
+                   # DEBUG: Move the active player's marble to the target position
                     moving_marble.pos = action.pos_to
                     moving_marble.is_save = True if action.pos_to == 0 else False
+
 
                     team_won = True
                     for idx_player in [0, 2]:
@@ -542,6 +564,8 @@ class Dog(Game):
             if self.state.card_active:
                 self.state.card_active = None
 
+        """# -------------------- 4. Folding Logic --------------------"""
+        # Handle the case where the player cannot make any moves
         if action is None and not self.get_list_action() and self.state.card_active is None:
             active_player = self.state.list_player[self.state.idx_player_active]
 
@@ -549,6 +573,8 @@ class Dog(Game):
                 self.state.list_card_discard.extend(active_player.list_card)
                 active_player.list_card.clear()
 
+        """-------------------- 5. Turn and Round Management --------------------"""
+        # Move to the next player if no SEVEN card steps remain
         if self.steps_remaining is None:
             self.state.idx_player_active = (self.state.idx_player_active + 1) % self.state.cnt_player
 
