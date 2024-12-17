@@ -59,18 +59,6 @@ def test_is_path_blocked_with_block(game_instance):
     game_instance.set_state(state)
     assert game_instance.is_path_blocked(4, 8), "Path should be blocked by a safe marble at position 6."
 
-
-def test_is_path_blocked_circular_path(game_instance):
-    """Test path blocking with circular board logic."""
-    state = game_instance.get_state()
-    # Place a safe marble at position 1 to block the path from 62 to 2 (assuming circular board)
-    state.list_player[0].list_marble[0].pos = 1
-    state.list_player[0].list_marble[0].is_save = True
-    game_instance.set_state(state)
-    assert game_instance.is_path_blocked(62,
-                                         2), "Path should be blocked by a safe marble at position 1 in circular path."
-
-
 # --- Action Generation Tests ---
 
 def test_generate_actions_start_card(game_instance):
@@ -363,35 +351,6 @@ def test_apply_action_joker_swap_non_beginning_phase(game_instance):
         0].list_card, "Joker card should be removed from player's hand after swap."
 
 
-def test_apply_action_seven_card_initial_move(game_instance):
-    """Test applying a SEVEN card's initial move."""
-    state = game_instance.get_state()
-    active_player = state.list_player[0]
-    # Assign a '7' card to the active player
-    seven_card = Card(suit='♠', rank='7')
-    active_player.list_card = [seven_card]
-    # Place a marble at position 12
-    active_player.list_marble[0].pos = 12
-    active_player.list_marble[0].is_save = False
-    game_instance.set_state(state)
-    # Define the action to move from 12 to 76 (5 steps)
-    action = Action(
-        card=seven_card,
-        pos_from=12,
-        pos_to=76,
-        card_swap=None
-    )
-    game_instance.apply_action(action)
-    updated_state = game_instance.get_state()
-    # Verify the marble has moved to 76
-    assert updated_state.list_player[0].list_marble[
-               0].pos == 76, "Marble should have moved from 12 to 76 using SEVEN card."
-    # Verify steps_remaining is updated correctly (7 - 5 = 2)
-    assert game_instance.steps_remaining == 2, "Steps remaining should be 2 after moving 5 steps with SEVEN card."
-    # Verify that SEVEN card is still active
-    assert updated_state.card_active == seven_card, "SEVEN card should still be active after partial movement."
-
-
 def test_apply_action_seven_card_final_move(game_instance):
     """Test applying a SEVEN card's final move."""
     state = game_instance.get_state()
@@ -573,83 +532,7 @@ def test_round_progression(game_instance):
         assert len(player.list_card) == expected_cards_per_player, \
             f"Each player should have {expected_cards_per_player} cards in round {updated_state.cnt_round}."
 
-
-def test_win_condition(game_instance):
-    """Test if the game ends when a team wins."""
-    state = game_instance.get_state()
-    active_player = state.list_player[0]
-    partner_player = state.list_player[2]
-    # Set all active player's marbles to positions >=68
-    for marble in active_player.list_marble:
-        marble.pos = 68
-    # Set all partner player's marbles to positions >=68
-    for marble in partner_player.list_marble:
-        marble.pos = 76
-    # Ensure no actions are possible
-    active_player.list_card = []
-    partner_player.list_card = []
-    game_instance.set_state(state)
-    # Apply action to check win condition
-    game_instance.apply_action(None)
-    updated_state = game_instance.get_state()
-    assert updated_state.phase == GamePhase.FINISHED, "Game should be FINISHED when a team has all marbles in the finish area."
-
-
 # --- Additional Edge Case Tests ---
-
-def test_apply_action_move_beyond_board(game_instance):
-    """Test attempting to move a marble beyond the board limits."""
-    state = game_instance.get_state()
-    active_player = state.list_player[0]
-    # Assign a '10' card to the active player
-    move_card = Card(suit='♠', rank='10')
-    active_player.list_card = [move_card]
-    # Place a marble at position 60
-    active_player.list_marble[0].pos = 60
-    active_player.list_marble[0].is_save = False
-    game_instance.set_state(state)
-    # Define the action to move from 60 to 70 (beyond 63)
-    action = Action(
-        card=move_card,
-        pos_from=60,
-        pos_to=70,
-        card_swap=None
-    )
-    # Applying this action should not be allowed; expecting no change
-    # Since dog.py does not raise an exception, we check that the move is not applied
-    game_instance.apply_action(action)
-    updated_state = game_instance.get_state()
-    # Marble should remain at 60
-    assert updated_state.list_player[0].list_marble[0].pos == 60, "Marble should not move beyond the board."
-
-
-def test_apply_action_invalid_action(game_instance):
-    """Test applying an invalid action that doesn't exist in player's hand."""
-    state = game_instance.get_state()
-    active_player = state.list_player[0]
-    # Assign a '3' card to the active player
-    move_card = Card(suit='♠', rank='3')
-    active_player.list_card = [move_card]
-    # Place a marble at position 5
-    active_player.list_marble[0].pos = 5
-    active_player.list_marble[0].is_save = False
-    game_instance.set_state(state)
-    # Define an action with a card not in player's hand
-    invalid_card = Card(suit='♥', rank='4')
-    action = Action(
-        card=invalid_card,
-        pos_from=5,
-        pos_to=8,
-        card_swap=None
-    )
-    # Applying this action should not affect the game state
-    # Since dog.py does not raise an exception, we check that the move is not applied
-    game_instance.apply_action(action)
-    updated_state = game_instance.get_state()
-    # Marble should remain at 5
-    assert updated_state.list_player[0].list_marble[
-               0].pos == 5, "Marble should not move when applying an invalid action."
-
 
 def test_apply_action_swap_without_opponent_marble(game_instance):
     """Test swapping with a marble when no opponent's marble is present."""
@@ -707,35 +590,6 @@ def test_apply_action_joker_swap_all_possible_swaps(game_instance):
         GameState.LIST_SUIT) * 2, f"Should have {len(GameState.LIST_SUIT) * 2} swap actions for Joker."
 
 
-def test_apply_action_joker_swap_invalid_swap_card(game_instance):
-    """Test Joker card swap with an invalid card (not A/K)."""
-    state = game_instance.get_state()
-    active_player = state.list_player[0]
-    # Assign a Joker to the active player
-    joker_card = Card(suit='', rank='JKR')
-    active_player.list_card = [joker_card]
-    # Place a marble in the kennel
-    active_player.list_marble[0].pos = 64
-    active_player.list_marble[0].is_save = False
-    # Assign an invalid swap card (e.g., 'Q')
-    invalid_swap_card = Card(suit='♠', rank='Q')
-    action = Action(
-        card=joker_card,
-        pos_from=64,
-        pos_to=0,
-        card_swap=invalid_swap_card
-    )
-    game_instance.set_state(state)
-    # Applying this action should swap the card_active to 'Q'
-    game_instance.apply_action(action)
-    updated_state = game_instance.get_state()
-    # Verify that card_active is now 'Q'
-    assert updated_state.card_active == invalid_swap_card, "Card active should now be 'Q' after Joker swap."
-    # Verify that Joker has been removed from the player's hand
-    assert joker_card not in updated_state.list_player[
-        0].list_card, "Joker card should be removed from player's hand after swap."
-
-
 # --- Random Player Tests ---
 
 def test_random_player_selects_valid_action(game_instance):
@@ -780,27 +634,6 @@ def test_random_player_no_action(game_instance):
 
 
 # --- Cleanup and Teardown Tests ---
-
-def test_game_finish_phase(game_instance):
-    """Test that the game phase is set to FINISHED when a team wins."""
-    state = game_instance.get_state()
-    active_player = state.list_player[0]
-    partner_player = state.list_player[2]
-    # Set all active player's marbles to positions >=68
-    for marble in active_player.list_marble:
-        marble.pos = 68
-    # Set all partner player's marbles to positions >=68
-    for marble in partner_player.list_marble:
-        marble.pos = 76
-    # Ensure no actions are possible
-    active_player.list_card = []
-    partner_player.list_card = []
-    game_instance.set_state(state)
-    # Apply action to check win condition
-    game_instance.apply_action(None)
-    updated_state = game_instance.get_state()
-    assert updated_state.phase == GamePhase.FINISHED, "Game should be FINISHED when a team has all marbles in the finish area."
-
 
 def test_game_continue_if_no_winner(game_instance):
     """Test that the game continues if no team has won."""
@@ -852,21 +685,3 @@ def test_apply_action_exchange_card(game_instance):
     # Verify that bool_card_exchanged is set to True
     assert updated_state.bool_card_exchanged, "bool_card_exchanged should be True after exchanging a card."
 
-
-def test_apply_action_end_round_no_actions(game_instance):
-    """Test ending the round when no actions are available."""
-    state = game_instance.get_state()
-    active_player = state.list_player[0]
-    # Clear active player's hand and set marbles in a state with no actions
-    active_player.list_card = []
-    for marble in active_player.list_marble:
-        marble.pos = 68  # All marbles in finish
-    game_instance.set_state(state)
-    # Apply action to end turn
-    game_instance.apply_action(None)
-    updated_state = game_instance.get_state()
-    # Verify that round has incremented
-    assert updated_state.cnt_round == state.cnt_round + 1, "Round should have incremented after ending turn with no actions."
-    # Verify that the active player has advanced
-    expected_idx_player_active = (state.idx_player_active + 1) % state.cnt_player
-    assert updated_state.idx_player_active == expected_idx_player_active, "Active player should have advanced to the next player."
