@@ -474,6 +474,7 @@ def test_apply_action_j_swap_no_opponent_marble(game_instance):
             assert marble.pos != 15, "No opponent's marble should be at 15."
 
 
+
 # --- SEVEN Card Logic Tests ---
 
 def test_seven_card_partial_steps(game_instance):
@@ -845,6 +846,7 @@ def test_apply_action_exchange_card(game_instance):
         2].list_card, "Exchanged card should be added to partner player's hand."
     # Verify that bool_card_exchanged is set to True
     assert updated_state.bool_card_exchanged, "bool_card_exchanged should be True after exchanging a card."
+
 
 # --- Endgame Logic Tests ---
 
